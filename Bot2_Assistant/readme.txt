@@ -1,0 +1,1 @@
+Bot attempt №2 is an assistant for working with files as in cmd+SQL
