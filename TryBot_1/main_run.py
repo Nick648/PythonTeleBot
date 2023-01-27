@@ -5,7 +5,7 @@ import telebot
 from telebot import types
 import json
 from auth_data import token, chat_id_father, login_password, sec_words_1, sec_words_2, sec_words
-from prepared_answers import welcome_ans, help_ans, idk_ans, hiw_ans, pas_req, cor_pas, err_pas_ans, sec_hint, \
+from prepared_answers import welcome_ans, help_ans, idk_ans, hiw_ans, pas_req, cor_pas, sec_hint, \
     wth_ans, answer_end, try_again_ans
 
 with open(r"data/authorized_users.json", "r") as read_file:
@@ -14,7 +14,7 @@ with open(r"data/authorized_users.json", "r") as read_file:
 
 def update_data_json():
     with open(r"data/authorized_users.json", "w") as write_file:
-        json.dump(authorized_users, write_file, indent=4)
+        json.dump(authorized_users, write_file, ensure_ascii=False, indent=4)
 
 
 def check_authorized_user(message):
@@ -89,6 +89,15 @@ def telegram_bot(token_bot):
     #     bot.reply_to(message, message)  # Ответ на сообщение
     #     report_father(bot, message)
 
+    @bot.message_handler(commands=[""])  # CHECK!!!
+    def start_message(message):
+        bot.send_message(message.chat.id, welcome_ans)
+        if not check_authorized_user(message):
+            bot.send_message(message.chat.id, "Secret egg!")
+        else:
+            bot.send_message(message.chat.id, "Secret egg!")
+        report_father(bot, message)
+
     @bot.message_handler(commands=["start"])
     def start_message(message):
         bot.send_message(message.chat.id, welcome_ans)
@@ -118,6 +127,7 @@ def telegram_bot(token_bot):
     def send_text(message):
         text_mes = message.text.strip().lower()
         if not check_authorized_user(message):
+            bot.delete_message(message.chat.id, message.id)
             if text_mes == login_password:
                 for i in range(1, 4):
                     bot.send_message(message.chat.id, f"H{'m' * (i + 1)}")
@@ -125,8 +135,8 @@ def telegram_bot(token_bot):
                 bot.reply_to(message, cor_pas)
                 change_verify_user(message)
             else:
-                bot.delete_message(message.chat.id, message.id)
-                bot.send_message(message.chat.id, err_pas_ans)
+                bot.send_message(message.chat.id, "Hmm, that's the wrong answer...")
+                bot.send_message(message.chat.id, "Think again!")
         elif text_mes == "rate":
             try:
                 bot.send_message(
@@ -184,7 +194,7 @@ def telegram_bot(token_bot):
         #     chat_id_father,
         #     message
         # )
-    print(1)
+
     bot.polling()
 
 

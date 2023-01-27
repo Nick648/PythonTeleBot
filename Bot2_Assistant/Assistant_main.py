@@ -4,19 +4,21 @@ import time
 import telebot
 from telebot import types
 import json
-from auth_data import token, chat_id_father, login_password
+
+from auth_data import token, chat_id_father, login_password, main_directory
+from LexerParser import *
 from assistant_answers import welcome_ans, help_ans, idk_ans, hiw_ans, pas_req, cor_pas
 
-with open(r"data/authorized_users.json", "r") as read_file:
+with open(r"data/authorized_users.json", "r", encoding="utf-8") as read_file:
     authorized_users = json.load(read_file)
 
 
-def update_data_json():
-    with open(r"data/authorized_users.json", "w") as write_file:
-        json.dump(authorized_users, write_file, indent=4)
+def update_data_json() -> None:
+    with open(r"data/authorized_users.json", "w", encoding="utf-8") as write_file:
+        json.dump(authorized_users, write_file, ensure_ascii=False, indent=4)
 
 
-def check_authorized_user(message):
+def check_authorized_user(message) -> bool:
     key = str(message.from_user.id)
     if key in authorized_users:
         return authorized_users[key]['verify']  # == True
@@ -35,7 +37,7 @@ def check_authorized_user(message):
     return False
 
 
-def change_verify_user(message, value=True):
+def change_verify_user(message, value=True) -> None:
     key = str(message.from_user.id)
     try:
         authorized_users[key]['verify'] = value
@@ -44,7 +46,7 @@ def change_verify_user(message, value=True):
         print(f'Error in change_verify_user -> {type(ex).__name__} : {ex}')
 
 
-def report_father(bot, message):
+def report_father(bot, message) -> None:
     if message.chat.id != chat_id_father:
         time_report = datetime.now().strftime('%d.%m.%Y %H:%M')
         report = f'Dad, at {time_report} id={message.chat.id} wrote to me\n'
@@ -63,8 +65,24 @@ def report_father(bot, message):
         # print(report)
 
 
-def telegram_bot(token_bot):
+def research_cmd_line(cmd_line: str, cur_dir: str):
+    # return lexer(cmd_line)
+    try:
+        commands_list = lexer(cmd_line)
+    except Exception as ex:
+        # print(f"{type(ex).__name__} -> {ex}")
+        return Error(type(ex).__name__, str(ex) + '. egg: l1')
+    try:
+        parser()
+    except Exception as ex:
+        # print(f"{type(ex).__name__} -> {ex}")
+        return Error(type(ex).__name__, str(ex) + '. egg: p2')
+    # return "Error -> No such command!"
+
+
+def telegram_bot(token_bot: str) -> None:
     bot = telebot.TeleBot(token_bot)
+    cur_dir = main_directory
 
     # @bot.message_handler(func=lambda m: True)
     # def echo_all(message):
@@ -73,20 +91,17 @@ def telegram_bot(token_bot):
 
     @bot.message_handler(commands=[""])  # CHECK!!!
     def start_message(message):
-        bot.send_message(message.chat.id, welcome_ans)
-        if not check_authorized_user(message):
-            bot.send_message(message.chat.id, "Secret egg!")
-        else:
-            bot.send_message(message.chat.id, "Secret egg!")
+        bot.send_message(message.chat.id, "Secret egg!")
         report_father(bot, message)
 
     @bot.message_handler(commands=["start"])
     def start_message(message):
-        bot.send_message(message.chat.id, welcome_ans)
         if not check_authorized_user(message):
+            bot.send_message(message.chat.id, welcome_ans)
             bot.send_message(message.chat.id, pas_req)
         else:
-            bot.send_message(message.chat.id, "And again, I am glad to welcome you!")
+            bot.send_message(message.chat.id, "And again, I am glad to welcome you! \n"
+                                              "For some help you can use the command -> /help")
         report_father(bot, message)
 
     @bot.message_handler(commands=["help"])
@@ -112,10 +127,9 @@ def telegram_bot(token_bot):
                 bot.send_message(message.chat.id, "Think again!")
 
         text_mes = message.text.strip().lower()
-        cmd_lines = message.text.strip().lower().split('\n')
+        cmd_lines = message.text.strip().split('\n')
         for cmd_line in cmd_lines:
-            cmd_line = cmd_line.strip().split()
-            research_cmd_line(cmd_line)
+            research_cmd_line(cmd_line, cur_dir)
 
         if message.text == "Кто это создал?":
             kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
